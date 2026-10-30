@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import React from 'react';
 import { HomelabTopology } from '../src/components/HomelabTopology';
 import { ProjectModal } from '../src/components/ProjectModal';
 import { STOPS, HOMELAB_SPEC } from '../src/data/portfolioContent';

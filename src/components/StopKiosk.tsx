@@ -1,6 +1,6 @@
 import React from 'react';
 import { PortfolioStop } from '../types/portfolio';
-import { ExternalLink, Terminal, Layers, Activity, FileText } from 'lucide-react';
+import { Terminal, Layers, Activity, FileText } from 'lucide-react';
 
 interface StopKioskProps {
   stop: PortfolioStop;

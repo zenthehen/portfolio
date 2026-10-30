@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserProfile, PortfolioStop } from '../types/portfolio';
-import { Mail, Phone, Linkedin, FileDown, Copy, Check, ExternalLink, Layers, Terminal, Activity } from 'lucide-react';
+import { FileDown, Copy, Check, ExternalLink, Layers, Terminal, Activity } from 'lucide-react';
 
 interface VerticalFallbackProps {
   profile: UserProfile;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { HomelabTopology as TopologyType } from '../types/portfolio';
-import { Server, Shield, Globe, Activity, X, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Server, Shield, Globe, Activity, X } from 'lucide-react';
 
 interface HomelabTopologyProps {
   topology: TopologyType;

@@ -22,12 +22,10 @@ export function calculateParallaxOffset(
 
 interface UseCameraScrollerOptions {
   worldWidth: number;
-  onMilestoneReached?: (stopIndex: number) => void;
 }
 
 export function useCameraScroller({
   worldWidth,
-  onMilestoneReached,
 }: UseCameraScrollerOptions) {
   const [camX, setCamX] = useState<number>(0);
   const [targetCamX, setTargetCamX] = useState<number>(0);
@@ -37,7 +35,6 @@ export function useCameraScroller({
 
   const prevCamXRef = useRef<number>(0);
   const velocityRef = useRef<number>(0);
-  const idleTimerRef = useRef<number | null>(null);
   const quipTimerRef = useRef<number | null>(null);
 
   // Jump to specific percent along the trail (e.g. 0 to 100)
