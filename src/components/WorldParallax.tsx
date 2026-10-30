@@ -1,18 +1,12 @@
 import React, { useMemo } from 'react';
 import { calculateParallaxOffset } from '../hooks/useCameraScroller';
 import { PortfolioStop } from '../types/portfolio';
-import { CandleRig } from './CandleRig';
-import { CandlePose } from '../types/portfolio';
 
 interface WorldParallaxProps {
   camX: number;
   worldWidth: number;
   stops: PortfolioStop[];
   activeStopIndex: number;
-  pose: CandlePose;
-  isJumping: boolean;
-  quip: string | null;
-  onPokeCandle: () => void;
   renderStopContent: (stop: PortfolioStop, isActive: boolean) => React.ReactNode;
 }
 
@@ -21,10 +15,6 @@ export const WorldParallax: React.FC<WorldParallaxProps> = ({
   worldWidth,
   stops,
   activeStopIndex,
-  pose,
-  isJumping,
-  quip,
-  onPokeCandle,
   renderStopContent,
 }) => {
   // Parallax offsets
@@ -188,17 +178,7 @@ export const WorldParallax: React.FC<WorldParallaxProps> = ({
           );
         })}
       </div>
-
-      {/* ── Fixed Hero Spot: Candle Character ── */}
-      {/* Positioned comfortably at 26% of viewport width */}
-      <div className="absolute bottom-24 left-[26%] z-40 -translate-x-1/2 pointer-events-auto">
-        <CandleRig
-          pose={pose}
-          quip={quip}
-          onPoke={onPokeCandle}
-          isJumping={isJumping}
-        />
-      </div>
     </div>
   );
 };
+

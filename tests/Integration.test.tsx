@@ -23,12 +23,13 @@ describe('Full Application Integration', () => {
     expect(screen.getByText(/LIST VIEW/i)).toBeInTheDocument();
   });
 
-  it('triggers a quip when Candle is poked', () => {
+  it('opens project architecture modal from a kiosk', () => {
     render(<App />);
-    const candleBtn = screen.getByRole('button', { name: /poke candle/i });
-    fireEvent.click(candleBtn);
+    const archButtons = screen.getAllByRole('button', { name: /architecture details/i });
+    expect(archButtons.length).toBeGreaterThan(0);
+    fireEvent.click(archButtons[0]);
 
-    // Should display the first poke quip
-    expect(screen.getByText(/Circuit breaker hit! \+10% on that breakout/i)).toBeInTheDocument();
+    // Modal opens
+    expect(screen.getByText(/Key Architectural Highlights/i)).toBeInTheDocument();
   });
 });

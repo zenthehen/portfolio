@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { STOPS, PROFILE, POKE_QUIPS, HOMELAB_SPEC } from './data/portfolioContent';
+import { STOPS, PROFILE, HOMELAB_SPEC } from './data/portfolioContent';
 import { useCameraScroller } from './hooks/useCameraScroller';
 import { soundEngine } from './audio/soundEngine';
 import { WorldParallax } from './components/WorldParallax';
@@ -21,16 +21,11 @@ export default function App() {
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [isTopologyOpen, setIsTopologyOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [pokeIndex, setPokeIndex] = useState<number>(0);
 
   // Scrollytelling Camera Hook
   const {
     camX,
-    pose,
-    isJumping,
-    activeQuip,
     jumpToPercent,
-    showQuip,
     progressPercent,
   } = useCameraScroller({
     worldWidth: WORLD_WIDTH,
@@ -72,13 +67,6 @@ export default function App() {
     }
   }, [isMuted, showToast]);
 
-  // Poke Candle Character
-  const handlePokeCandle = useCallback(() => {
-    const quip = POKE_QUIPS[pokeIndex % POKE_QUIPS.length];
-    setPokeIndex((prev) => prev + 1);
-    showQuip(quip);
-  }, [pokeIndex, showQuip]);
-
   // Guided Tour Mode logic
   useEffect(() => {
     if (!isTourActive) return;
@@ -94,12 +82,12 @@ export default function App() {
 
       const stop = STOPS[targetIdx];
       jumpToPercent(stop.worldXPercent);
-      showQuip(`Milestone ${targetIdx + 1}: ${stop.title}`);
+      showToast(`Milestone ${targetIdx + 1}: ${stop.title}`);
       targetIdx++;
     }, 4500);
 
     return () => clearInterval(tourInterval);
-  }, [isTourActive, jumpToPercent, showQuip, showToast]);
+  }, [isTourActive, jumpToPercent, showToast]);
 
   // Jump to specific stop
   const handleJumpToStop = useCallback(
@@ -149,10 +137,6 @@ export default function App() {
               worldWidth={WORLD_WIDTH}
               stops={STOPS}
               activeStopIndex={currentStopIndex}
-              pose={pose}
-              isJumping={isJumping}
-              quip={activeQuip}
-              onPokeCandle={handlePokeCandle}
               renderStopContent={(stop, isActive) => (
                 <StopKiosk
                   stop={stop}
