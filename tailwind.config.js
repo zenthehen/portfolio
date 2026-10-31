@@ -1,4 +1,7 @@
 /** @type {import('tailwindcss').Config} */
+// Colors live as RGB triplets in src/index.css so SVG and Tailwind share one palette.
+const token = (name) => `rgb(var(--${name}) / <alpha-value>)`;
+
 export default {
   content: [
     "./index.html",
@@ -7,29 +10,35 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: "#0D1117",
-        panel: "#131922",
-        "panel-2": "#171E29",
-        "panel-3": "#1C2432",
-        line: "#222B37",
-        "line-gold": "rgba(200, 146, 42, 0.35)",
-        cream: "#F5F0E8",
-        slate: {
-          DEFAULT: "#9AA5B1",
-          dim: "#6E7885",
+        paper: token('paper'),
+        sheet: {
+          DEFAULT: token('sheet'),
+          2: token('sheet-2'),
+          3: token('sheet-3'),
         },
-        gold: {
-          DEFAULT: "#C8922A",
-          bright: "#E0AC49",
-          soft: "rgba(200, 146, 42, 0.12)",
+        grid: token('grid'),
+        rule: token('rule'),
+        ink: {
+          DEFAULT: token('ink'),
+          soft: token('ink-soft'),
+          faint: token('ink-faint'),
         },
-        bull: "#3FB68B",
-        bear: "#EF4444",
+        mark: token('mark'),
+        'on-mark': token('on-mark'),
+        night: token('night'),
+        bull: token('bull'),
+        bear: token('bear'),
       },
       fontFamily: {
-        mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
-        display: ['"Fraunces"', 'Georgia', 'serif'],
-        sans: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'],
+        display: ['"Big Shoulders Display"', '"Arial Narrow"', 'sans-serif'],
+        sans: ['"Instrument Sans"', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+      },
+      borderRadius: {
+        DEFAULT: '2px',
+        md: '2px',
+        lg: '3px',
+        xl: '3px',
       },
     },
   },

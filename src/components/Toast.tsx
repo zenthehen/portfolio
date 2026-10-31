@@ -9,9 +9,10 @@ export const Toast: React.FC<ToastProps> = ({ message }) => {
   if (!message) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-lg bg-panel-2 border border-gold text-cream font-mono text-xs shadow-2xl animate-in slide-in-from-bottom-5">
-      <CheckCircle2 size={16} className="text-bull" />
+    <div className="fixed z-50 bottom-20 left-3 right-3 sm:left-auto sm:bottom-6 sm:right-6 flex items-center gap-2.5 px-4 py-2.5 bg-sheet-3 border border-ink-faint text-ink text-sm">
+      <CheckCircle2 size={16} className="text-mark" />
       <span>{message}</span>
     </div>
   );
 };
+

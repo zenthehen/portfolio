@@ -13,7 +13,7 @@ describe('StopKiosk Component', () => {
       />
     );
     expect(screen.getByText(/NEPSE Market Analytics/i)).toBeInTheDocument();
-    expect(screen.getByText(/NEPSE_RADAR/i)).toBeInTheDocument();
+    expect(screen.getByText('Algo breakthrough')).toBeInTheDocument();
     expect(screen.getByText(/FastAPI/i)).toBeInTheDocument();
   });
 
@@ -26,7 +26,7 @@ describe('StopKiosk Component', () => {
         onOpenDetails={handleOpen}
       />
     );
-    const btn = screen.getByRole('button', { name: /Architecture Details/i });
+    const btn = screen.getByRole('button', { name: /View architecture/i });
     fireEvent.click(btn);
     expect(handleOpen).toHaveBeenCalledWith('alpha-breakout');
   });
@@ -40,6 +40,13 @@ describe('StopKiosk Component', () => {
       />
     );
     const card = container.querySelector('[data-testid="stop-kiosk-card"]');
-    expect(card?.className).toContain('border-gold');
+    expect(card?.getAttribute('data-active')).toBe('true');
+  });
+});
+
+describe('StopKiosk order type label', () => {
+  it('keeps acronyms upper-case when humanising the order type', () => {
+    render(<StopKiosk stop={STOPS[3]} isActive={false} onOpenDetails={() => {}} />);
+    expect(screen.getByText('AI vision deploy')).toBeInTheDocument();
   });
 });

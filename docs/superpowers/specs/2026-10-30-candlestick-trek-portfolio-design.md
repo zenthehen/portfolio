@@ -181,3 +181,4 @@ Behind Candle, the journey paints a real historical candlestick chart on the gri
 3. **Data Accuracy**: Verify all information from `rishal.com.np` (job titles, dates, certifications, project highlights, homelab specs, contact info) is accurately represented.
 4. **Interactive Features**: Test one-click copy buttons for email/phone with toast alerts, CV download trigger, project detail modals, and homelab topology inspector.
 5. **Mobile Responsiveness**: Test touch gestures, responsive HUD, and screen width adaptation from mobile (<600px) to ultra-wide displays.
+

@@ -2,24 +2,113 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Layout concept: the whole trek is one hand-plotted chart on dimmed engineering graph paper.
+ * Candles follow the print convention: hollow body = close above open, filled = close below.
+ * One loud element only: the yellow highlighter on whatever is current.
+ */
 :root {
   color-scheme: dark;
+  --paper: 27 33 30;        /* graph paper, dimmed to slate green */
+  --sheet: 35 42 38;        /* pinned note sheets */
+  --sheet-2: 40 48 43;
+  --sheet-3: 48 57 51;
+  --grid: 46 56 50;         /* printed grid lines */
+  --rule: 70 82 75;         /* pencil dividers */
+  --ink: 232 236 228;       /* chalk-white ink */
+  --ink-soft: 184 192 184;
+  --ink-faint: 136 146 139;
+  --mark: 233 205 72;       /* highlighter */
+  --on-mark: 27 33 30;      /* text sitting on the highlighter */
+  --bull: 92 184 140;       /* close > open */
+  --bear: 226 95 80;        /* close < open */
+  --night: 8 12 20;         /* after-hours sky */
 }
 
-/* Custom scrollbar */
+body {
+  background: rgb(var(--paper));
+  color: rgb(var(--ink-soft));
+}
+
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: 2px;
+}
+
+/* Highlighter block for the one emphasised phrase; covers the full letter height so dark text stays legible */
+.mark {
+  background: linear-gradient(rgb(var(--mark)), rgb(var(--mark))) no-repeat 0 0 / 100% 100%;
+  color: rgb(var(--on-mark));
+  animation: markWipe 0.7s cubic-bezier(0.6, 0, 0.2, 1) var(--mark-delay, 0s) both;
+  padding: 0.04em 0.14em 0;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* Pin line from a card down to its date on the axis; it stretches when cards lift for the
+   mascot's walking lane (--card-lift, set on the world) */
+.card-leader {
+  /* divided by --fit so a card shrunk to fit still pins all the way down to the axis */
+  bottom: calc((-16px - var(--card-lift, 0px)) / var(--fit, 1));
+  height: calc((16px + var(--card-lift, 0px)) / var(--fit, 1));
+}
+
+/* Neighbouring cards sit dimmed under a paper-coloured veil (cheaper than a filter while the
+   trail is sliding); hovering one lifts the veil */
+.card-dim::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgb(var(--paper) / 0.38);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.card-dim:hover::after {
+  opacity: 0;
+}
+
+/* A cleared patch of chart behind text that sits directly on the world, so candles and racks don't run through it */
+.clearing-paper,
+.clearing-night {
+  --clear: var(--paper);
+  background: rgb(var(--clear) / 0.94);
+  box-shadow: 0 0 36px 28px rgb(var(--clear) / 0.94);
+}
+.clearing-night {
+  --clear: var(--night);
+}
+
+/* Graph paper: 8px minor, 40px major */
+.graph-paper {
+  background-color: rgb(var(--paper));
+  background-image:
+    linear-gradient(to right, rgb(var(--grid)) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(var(--grid)) 1px, transparent 1px),
+    linear-gradient(to right, rgb(var(--grid) / 0.45) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(var(--grid) / 0.45) 1px, transparent 1px);
+  background-size: 40px 40px, 40px 40px, 8px 8px, 8px 8px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #0D1117;
+  background: rgb(var(--paper));
 }
 ::-webkit-scrollbar-thumb {
-  background: #222B37;
-  border-radius: 3px;
+  background: rgb(var(--rule));
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #C8922A;
+  background: rgb(var(--ink-soft));
 }
 
 @keyframes pulseGlow {
@@ -35,4 +124,166 @@
 
 .animate-pulse-glow {
   animation: pulseGlow 3s ease-in-out infinite;
+}
+
+
+/* Drifting price ticks / summit snow */
+@keyframes tickFall {
+  0% { transform: translate3d(0, -2vh, 0) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  50% { transform: translate3d(18px, 50vh, 0) rotate(120deg); }
+  90% { opacity: 1; }
+  100% { transform: translate3d(-12px, 104vh, 0) rotate(240deg); opacity: 0; }
+}
+.animate-tick-fall {
+  animation: tickFall 12s linear infinite;
+}
+
+/* Opacity, not a filter: the compositor animates it without repainting the sky */
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.animate-twinkle {
+  animation: twinkle 3.5s ease-in-out infinite;
+}
+
+/* ── Scroll reveals ─────────────────────────────────────────────
+ * A wrapper carries data-revealed; children opt in with these classes.
+ * Order for a card: leader line draws up, frame wipes up, contents stagger in (--i).
+ */
+@keyframes markWipe {
+  from { background-size: 0% 100%; color: rgb(var(--ink)); }
+  50% { color: rgb(var(--ink)); }
+  to { background-size: 100% 100%; color: rgb(var(--on-mark)); }
+}
+
+.reveal-leader {
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 0.3s ease-out;
+}
+.reveal-frame {
+  clip-path: inset(100% 0 0 0);
+  transition: clip-path 0.65s cubic-bezier(0.65, 0, 0.25, 1) 0.18s;
+}
+.reveal-item {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.5s ease,
+    transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: calc(var(--d, 380ms) + var(--i, 0) * 75ms);
+}
+.reveal-rise {
+  transform: translateY(105%);
+  transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition-delay: calc(var(--d, 0ms) + var(--i, 0) * 110ms);
+}
+[data-revealed="true"] .reveal-leader,
+[data-revealed="true"] .reveal-rise,
+[data-revealed="true"].reveal-item,
+[data-revealed="true"] .reveal-item {
+  opacity: 1;
+  transform: none;
+}
+[data-revealed="true"] .reveal-frame {
+  clip-path: inset(0 0 0 0);
+}
+
+/* ATH candle grows from its base, then a burst of small candles fires off the flag */
+.ath-grow {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  transform: scaleY(0);
+  transition: transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s;
+}
+[data-revealed="true"] .ath-grow {
+  transform: none;
+}
+.burst-bit {
+  opacity: 0;
+}
+[data-revealed="true"] .burst-bit {
+  animation: burst 1.5s cubic-bezier(0.15, 0.7, 0.3, 1) 1s both;
+}
+@keyframes burst {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0deg) scale(0.4); }
+  12% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--r)) scale(1); }
+}
+
+/* Plotter: pen tip pulse and milestone markers popping in as they're passed */
+@keyframes penPulse {
+  from { transform: scale(1); opacity: 0.7; }
+  to { transform: scale(3.2); opacity: 0; }
+}
+.pen-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: penPulse 1.6s ease-out infinite;
+}
+/* The sky chart turning red in a sell-off (going back) and green again */
+.plot-trend {
+  transition: opacity 0.45s ease, stroke 0.45s ease, fill 0.45s ease;
+}
+.plot-marker {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.4s cubic-bezier(0.3, 1.6, 0.5, 1), fill 0.3s ease;
+}
+
+/* Index readout flashes on each tick */
+@keyframes tickFlash {
+  from { background-color: rgb(var(--tick-color) / 0.28); }
+  to { background-color: transparent; }
+}
+.tick-up { --tick-color: var(--bull); animation: tickFlash 0.6s ease-out; }
+.tick-down { --tick-color: var(--bear); animation: tickFlash 0.6s ease-out; }
+
+/* Card call-to-action: a ring pings out from the button while its card is in view, starting
+   once the card has revealed. Transform and opacity only, so it costs nothing per frame. */
+.cta { position: relative; }
+.cta-ping::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 2px solid rgb(var(--mark));
+  pointer-events: none;
+  opacity: 0;
+}
+[data-revealed='true'] .cta-ping::after {
+  animation: ctaPing 2.6s cubic-bezier(0.2, 0.6, 0.3, 1) 1.4s infinite;
+}
+.cta-ping:hover::after { animation: none; }
+@keyframes ctaPing {
+  0% { opacity: 0.9; transform: scale(1); }
+  60%, 100% { opacity: 0; transform: scale(1.12, 1.55); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mark,
+  .pen-pulse,
+  .burst-bit,
+  .tick-up,
+  .tick-down,
+  .cta-ping::after {
+    animation: none !important;
+  }
+  .reveal-leader,
+  .reveal-frame,
+  .reveal-item,
+  .reveal-rise,
+  .ath-grow {
+    opacity: 1 !important;
+    transform: none !important;
+    clip-path: none !important;
+    transition: none !important;
+  }
+  .animate-tick-fall,
+  .animate-twinkle,
+  .animate-pulse-glow {
+    animation: none;
+  }
 }

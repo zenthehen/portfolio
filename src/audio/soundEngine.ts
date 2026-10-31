@@ -1,14 +1,27 @@
 /**
  * Zero-dependency Web Audio API sound synthesizer
- * Produces subtle retro terminal clicks, gentle milestone chimes, and server hum.
- * Safe for SSR and strictly muted until explicit user interaction.
+ * Produces subtle retro terminal clicks, gentle milestone chimes, server hum, and the
+ * "Opening Bell" background theme. Safe for SSR and strictly muted until explicit user interaction.
  */
+import { ThemeSequencer } from './theme';
 
 class SoundEngine {
   private ctx: AudioContext | null = null;
   private muted: boolean = true;
   private humOsc: OscillatorNode | null = null;
   private humGain: GainNode | null = null;
+  private theme: ThemeSequencer | null = null;
+  private musicNight = false;
+
+  constructor() {
+    // Don't keep the beat going in a background tab (timers get throttled there and it would stutter)
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) this.theme?.stop();
+        else if (!this.muted) this.startMusic();
+      });
+    }
+  }
 
   private initContext() {
     if (typeof window === 'undefined') return null;
@@ -28,8 +41,10 @@ class SoundEngine {
     this.muted = muted;
     if (!muted) {
       this.initContext();
+      this.startMusic();
     } else {
       this.stopHum();
+      this.theme?.stop();
     }
   }
 
@@ -92,6 +107,32 @@ class SoundEngine {
     }
   }
 
+  // Background theme: starts with sound, fades out when muted
+  public startMusic() {
+    if (this.muted) return;
+    const ctx = this.initContext();
+    if (!ctx) return;
+    try {
+      if (!this.theme) {
+        this.theme = new ThemeSequencer(ctx, ctx.destination);
+        this.theme.setNight(this.musicNight);
+      }
+      this.theme.start();
+    } catch {
+      this.theme = null;
+    }
+  }
+
+  // After hours the theme winds down: drums drop out and the mix gets darker and quieter
+  public setMusicNight(night: boolean) {
+    this.musicNight = night;
+    this.theme?.setNight(night);
+  }
+
+  public isMusicPlaying(): boolean {
+    return this.theme?.playing ?? false;
+  }
+
   public startHum() {
     if (this.muted || this.humOsc) return;
     const ctx = this.initContext();
@@ -126,3 +167,4 @@ class SoundEngine {
 }
 
 export const soundEngine = new SoundEngine();
+

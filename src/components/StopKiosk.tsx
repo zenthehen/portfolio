@@ -1,6 +1,7 @@
 import React from 'react';
 import { PortfolioStop } from '../types/portfolio';
-import { Terminal, Layers, Activity, FileText } from 'lucide-react';
+import { Layers, Network, FileDown, ArrowUpRight } from 'lucide-react';
+import { stagger } from './reveal';
 
 interface StopKioskProps {
   stop: PortfolioStop;
@@ -9,128 +10,110 @@ interface StopKioskProps {
   onOpenTopology?: () => void;
 }
 
-export const StopKiosk: React.FC<StopKioskProps> = ({
+// INITIAL_POSITION → "Initial position", AI_VISION_DEPLOY → "AI vision deploy"
+const ACRONYMS = new Set(['AI', 'HA', 'L2', 'NOC']);
+const readableOrderType = (code: string) =>
+  code
+    .split('_')
+    .map((word, i) => (ACRONYMS.has(word) ? word : i === 0 ? word.charAt(0) + word.slice(1).toLowerCase() : word.toLowerCase()))
+    .join(' ');
+
+// The card's main action: a solid highlighter button, so it reads as clickable at a glance;
+// on the card in view a ring pings out from it now and then
+const ctaClass = (isActive: boolean) =>
+  `cta group inline-flex items-center gap-1.5 px-3 py-2 bg-mark text-on-mark text-sm font-semibold border border-mark hover:bg-ink hover:border-ink hover:text-sheet transition-colors ${
+    isActive ? 'cta-ping' : ''
+  }`;
+
+const CtaArrow = () => (
+  <ArrowUpRight size={15} aria-hidden="true" className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+);
+
+const StopKioskCard: React.FC<StopKioskProps> = ({
   stop,
   isActive,
   onOpenDetails,
   onOpenTopology,
 }) => {
   return (
-    <div
-      data-testid="stop-kiosk-card"
-      className={`w-[360px] sm:w-[420px] rounded-lg transition-all duration-300 transform ${
-        isActive
-          ? 'bg-panel border-2 border-gold shadow-[0_0_30px_rgba(200,146,42,0.3)] scale-100 z-30'
-          : 'bg-panel/90 border border-line opacity-80 hover:opacity-100 hover:border-gold/50 z-20'
-      }`}
-    >
-      {/* Kiosk Terminal Header */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-panel-2 border-b border-line rounded-t-lg">
-        <div className="flex items-center gap-2 font-mono text-xs text-slate">
-          <Terminal size={14} className={isActive ? 'text-gold-bright' : 'text-slate-dim'} />
-          <span>{stop.date}</span>
-          <span className="text-slate-dim">·</span>
-          <span className="text-gold-bright font-semibold">{stop.orderType}</span>
-        </div>
+    <div className="relative">
+      {/* Leader line pinning the note to its date on the axis (outside the frame so the wipe doesn't clip it) */}
+      <span
+        aria-hidden="true"
+        className={`reveal-leader card-leader absolute left-0 border-l border-dashed ${isActive ? 'border-ink' : 'border-ink-faint'}`}
+      />
+      <article
+        data-testid="stop-kiosk-card"
+        data-active={isActive}
+        className={`reveal-frame relative w-[min(400px,80vw)] bg-sheet transition-[border-color,transform] duration-300 hover:-translate-y-1 ${
+          isActive
+            ? 'border-[1.5px] border-ink -translate-y-1 z-30'
+            : 'border border-rule card-dim hover:border-ink-faint z-20'
+        }`}
+      >
+        <header className="reveal-item flex items-baseline justify-between gap-3 px-4 sm:px-5 pt-4" style={stagger(0)}>
+          <span className="font-mono text-xs text-ink-faint tabular">{stop.date}</span>
+          <span className="text-xs text-ink-soft">{readableOrderType(stop.orderType)}</span>
+        </header>
 
-        {stop.roleBadge && (
-          <span
-            className={`font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border ${
-              isActive
-                ? 'bg-gold-soft text-gold-bright border-gold/40'
-                : 'bg-panel-3 text-slate border-line'
-            }`}
-          >
-            {stop.roleBadge}
-          </span>
-        )}
-      </div>
-
-      {/* Kiosk Content Body */}
-      <div className="p-5 flex flex-col gap-3">
-        <div>
-          <h3 className="font-display font-semibold text-lg sm:text-xl text-cream leading-snug">
-            {stop.title}
-          </h3>
-          <p className="font-sans text-xs text-gold mt-0.5">{stop.organization}</p>
-        </div>
-
-        <p className="text-xs sm:text-sm text-slate leading-relaxed font-sans line-clamp-4">
-          {stop.description}
-        </p>
-
-        {/* Milestone Metrics Chips */}
-        {stop.metrics && stop.metrics.length > 0 && (
-          <div className="grid grid-cols-2 gap-2 my-1">
-            {stop.metrics.map((m, idx) => (
-              <div
-                key={idx}
-                className="bg-panel-2 border border-line rounded px-2.5 py-1.5 flex flex-col"
-              >
-                <span className="font-mono text-[10px] text-slate-dim uppercase tracking-wider">
-                  {m.label}
-                </span>
-                <span className="font-mono text-xs font-semibold text-cream">
-                  {m.value}
-                </span>
-              </div>
-            ))}
+        <div className="px-4 sm:px-5 pt-2 pb-4 sm:pb-5 flex flex-col gap-2.5 sm:gap-3">
+          <div className="reveal-item" style={stagger(1)}>
+            <h3 className="font-display font-extrabold uppercase text-[22px] sm:text-[26px] leading-[1.02] tracking-[0.01em] text-ink">
+              <span className={isActive ? 'mark' : undefined}>{stop.title}</span>
+            </h3>
+            <p className="mt-1.5 text-sm text-ink-soft">{stop.organization}</p>
           </div>
-        )}
 
-        {/* Tech Stack Chips */}
-        <div className="flex flex-wrap gap-1.5 pt-1">
-          {stop.tags.map((tag) => (
-            <span
-              key={tag}
-              className="font-mono text-[10.5px] px-2 py-0.5 rounded bg-panel-2 border border-line text-slate hover:text-cream hover:border-gold/40 transition-colors"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
+          <p className="reveal-item text-sm text-ink-soft leading-relaxed line-clamp-3 sm:line-clamp-4" style={stagger(2)}>{stop.description}</p>
 
-        {/* Action Buttons */}
-        <div className="pt-2 border-t border-line/60 flex items-center justify-between gap-2 mt-1">
-          {stop.projectDetails ? (
-            <button
-              type="button"
-              onClick={() => onOpenDetails(stop.id)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded font-mono text-xs font-medium bg-panel-2 border border-line text-cream hover:border-gold hover:text-gold-bright transition-colors"
-            >
-              <Layers size={13} />
-              Architecture Details
-            </button>
-          ) : stop.id === 'proxmox-citadel' && onOpenTopology ? (
-            <button
-              type="button"
-              onClick={onOpenTopology}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded font-mono text-xs font-medium bg-panel-2 border border-gold/40 text-gold-bright hover:bg-gold-soft transition-colors"
-            >
-              <Activity size={13} />
-              Inspect Homelab Topology
-            </button>
-          ) : stop.id === 'ath-summit' ? (
-            <a
-              href="assets/Rishal-Raj-Maskey-CV.pdf"
-              download
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded font-mono text-xs font-medium bg-gold text-ink hover:bg-gold-bright transition-colors"
-            >
-              <FileText size={13} />
-              Download CV (PDF)
-            </a>
-          ) : (
-            <span className="font-mono text-[11px] text-slate-dim flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-bull" />
-              Verified Milestone
-            </span>
+          {stop.metrics && stop.metrics.length > 0 && (
+            <dl className="reveal-item grid grid-cols-2 border-t border-rule" style={stagger(3)}>
+              {stop.metrics.map((m) => (
+                <div key={m.label} className="pt-2 pr-3">
+                  <dt className="text-xs uppercase tracking-[0.08em] text-ink-faint">{m.label}</dt>
+                  <dd className="text-sm font-medium text-ink">{m.value}</dd>
+                </div>
+              ))}
+            </dl>
           )}
 
-          <span className="font-mono text-[11px] text-slate-dim">
-            NEPSE: {stop.marketIndex} pts
-          </span>
+          <p className="reveal-item font-mono text-xs leading-relaxed text-ink-soft" style={stagger(4)}>{stop.tags.join('  ·  ')}</p>
+
+          <footer className="reveal-item flex items-center justify-between gap-2 pt-3 border-t border-rule" style={stagger(5)}>
+            {stop.projectDetails ? (
+              <button type="button" onClick={() => onOpenDetails(stop.id)} className={ctaClass(isActive)}>
+                <Layers size={14} aria-hidden="true" />
+                View architecture
+                <CtaArrow />
+              </button>
+            ) : stop.id === 'proxmox-citadel' && onOpenTopology ? (
+              <button type="button" onClick={onOpenTopology} className={ctaClass(isActive)}>
+                <Network size={14} aria-hidden="true" />
+                Inspect homelab
+                <CtaArrow />
+              </button>
+            ) : stop.id === 'ath-summit' ? (
+              <a
+                href="assets/Rishal-Raj-Maskey-CV.pdf"
+                download
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ink text-sheet text-sm font-medium hover:bg-ink-soft transition-colors"
+              >
+                <FileDown size={14} />
+                Download CV
+              </a>
+            ) : (
+              <span />
+            )}
+
+            <span className="font-mono text-xs text-ink-faint tabular">
+              NEPSE {stop.marketIndex.toLocaleString()}
+            </span>
+          </footer>
         </div>
-      </div>
+      </article>
     </div>
   );
 };
+
+// Memoized: cards only re-render when they become (in)active, not on every camera frame
+export const StopKiosk = React.memo(StopKioskCard);

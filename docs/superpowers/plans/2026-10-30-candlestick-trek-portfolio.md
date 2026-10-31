@@ -487,3 +487,4 @@ Expected: Clean static build in `dist/` with zero bundle warnings.
 git add src/ tests/
 git commit -m "feat: complete full candlestick trek portfolio assembly and production build"
 ```
+

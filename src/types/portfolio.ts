@@ -1,5 +1,3 @@
-export type CandlePose = 'idle' | 'walk-bull' | 'walk-bear' | 'celebrate' | 'jump';
-
 export interface ProjectDetails {
   kind: string;
   title: string;
@@ -57,4 +55,20 @@ export interface UserProfile {
   linkedin: string;
   cvUrl: string;
   uptime: string;
+}
+
+
+export type TrailSceneId = 'basecamp' | 'order-book' | 'summit' | 'after-hours';
+
+export interface TrailScene {
+  id: TrailSceneId;
+  worldXPercent: number;
+  marketIndex: number; // level the plotted price passes through here
+  label: string;
+}
+
+export interface SkillGroup {
+  ticker: string;
+  title: string;
+  items: string[];
 }

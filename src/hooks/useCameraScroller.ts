@@ -1,6 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { CandlePose } from '../types/portfolio';
-import { soundEngine } from '../audio/soundEngine';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export function mapScrollToCamera(
   scrollY: number,
@@ -20,158 +18,205 @@ export function calculateParallaxOffset(
   return camX * depthFactor;
 }
 
+// Camera spring: critically damped (damping = 2·√stiffness), settles one card in about half a second
+const SPRING_STIFFNESS = 130;
+const SPRING_DAMPING = 2 * Math.sqrt(SPRING_STIFFNESS);
+
+// How long one step owns the input, and what counts as a deliberate gesture
+const STEP_LOCK_MS = 750;
+const WHEEL_GESTURE_GAP_MS = 220;
+const WHEEL_STEP_THRESHOLD = 24;
+const SWIPE_THRESHOLD_PX = 36;
+// The camera counts as travelling until it's this close to its target; the last few pixels of
+// the spring's settle are invisible and shouldn't block the next gesture
+const TRAVELLING_PX = 40;
+
 interface UseCameraScrollerOptions {
   worldWidth: number;
+  // Keyboard and swipe controls only apply while the side-scrolling trek is shown
+  enabled?: boolean;
+  // Every wheel gesture, swipe or key press steps one waypoint forward (1) or back (-1)
+  onStep?: (direction: 1 | -1) => void;
 }
 
 export function useCameraScroller({
   worldWidth,
+  enabled = true,
+  onStep,
 }: UseCameraScrollerOptions) {
-  const [camX, setCamX] = useState<number>(0);
-  const [targetCamX, setTargetCamX] = useState<number>(0);
-  const [pose, setPose] = useState<CandlePose>('idle');
-  const [isJumping, setIsJumping] = useState<boolean>(false);
-  const [activeQuip, setActiveQuip] = useState<string | null>(null);
+  // Latest callback without re-binding listeners every render
+  const onStepRef = useRef(onStep);
+  onStepRef.current = onStep;
 
-  const prevCamXRef = useRef<number>(0);
-  const velocityRef = useRef<number>(0);
-  const quipTimerRef = useRef<number | null>(null);
+  // Position and velocity (px/s) come from the spring together, so anything that reacts to motion
+  // (mascot gait, which character shows, the index arrow) reads the real motion, not render noise
+  const [cam, setCam] = useState({ x: 0, v: 0 });
+
+  // The camera is the only thing that animates. It follows a critically damped spring toward
+  // the target, so a new step mid-flight bends the motion smoothly instead of restarting it.
+  const motion = useRef({ x: 0, v: 0, target: 0, lastTime: 0, frame: 0 });
+
+  const tick = useCallback((now: number) => {
+    const m = motion.current;
+    const dt = Math.min(0.034, m.lastTime ? (now - m.lastTime) / 1000 : 1 / 60);
+    m.lastTime = now;
+    const accel = SPRING_STIFFNESS * (m.target - m.x) - SPRING_DAMPING * m.v;
+    m.v += accel * dt;
+    m.x += m.v * dt;
+    // Land once the remaining creep is sub-pixel-per-frame, instead of crawling the last few pixels
+    if (Math.abs(m.target - m.x) < 1 && Math.abs(m.v) < 15) {
+      m.x = m.target;
+      m.v = 0;
+      m.frame = 0;
+      m.lastTime = 0;
+      setCam({ x: m.x, v: 0 });
+      return;
+    }
+    setCam({ x: m.x, v: m.v });
+    m.frame = requestAnimationFrame(tick);
+  }, []);
+
+  const moveTo = useCallback(
+    (target: number) => {
+      const m = motion.current;
+      m.target = Math.max(0, Math.min(worldWidth, target));
+      if (!m.frame) m.frame = requestAnimationFrame(tick);
+    },
+    [worldWidth, tick]
+  );
+
+  useEffect(() => () => cancelAnimationFrame(motion.current.frame), []);
 
   // Jump to specific percent along the trail (e.g. 0 to 100)
   const jumpToPercent = useCallback(
     (percent: number) => {
-      const target = (Math.max(0, Math.min(100, percent)) / 100) * worldWidth;
-      setTargetCamX(target);
+      const clamped = Math.max(0, Math.min(100, percent));
+      moveTo((clamped / 100) * worldWidth);
 
-      // Also sync actual window scroll height if in vertical scroller
+      // Keep the page scroll position (scrollbar, reload, list-view switch) in step, instantly:
+      // a smooth native scroll here would be a second animation fighting the camera.
       const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      if (maxScroll > 0) {
-        window.scrollTo({
-          top: (percent / 100) * maxScroll,
-          behavior: 'smooth',
-        });
-      }
+      if (maxScroll > 0) window.scrollTo({ top: (clamped / 100) * maxScroll, behavior: 'auto' });
     },
-    [worldWidth]
+    [worldWidth, moveTo]
   );
 
-  // Trigger celebration jump
-  const triggerJump = useCallback(() => {
-    setIsJumping(true);
-    soundEngine.playBlip(780, 0.08);
-    setTimeout(() => setIsJumping(false), 300);
-  }, []);
-
-  // Show a poke quip with auto-dismiss
-  const showQuip = useCallback((text: string) => {
-    setActiveQuip(text);
-    soundEngine.playBlip(920, 0.06);
-    if (quipTimerRef.current) clearTimeout(quipTimerRef.current);
-    quipTimerRef.current = window.setTimeout(() => {
-      setActiveQuip(null);
-    }, 3800);
-  }, []);
-
-  // Listen to vertical window scroll and map 1:1 to targetCamX
+  // Scrolling by other means (dragging the scrollbar, a resize re-snap) still moves the camera
   useEffect(() => {
     const handleScroll = () => {
       const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
       const target = mapScrollToCamera(window.scrollY, maxScroll, worldWidth);
-      setTargetCamX(target);
+      if (Math.abs(target - motion.current.target) > 2) moveTo(target);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [worldWidth]);
+  }, [worldWidth, moveTo]);
 
-  // Keyboard controls: Arrow Left/Right, A/D, Space to Jump
+  // Paged input: every gesture moves exactly one waypoint, so nothing in the middle gets skipped.
+  // Wheel, trackpad, touch and keys are all taken over while the trek is shown; pop-ups marked
+  // data-allow-scroll keep their own native scrolling.
   useEffect(() => {
+    if (!enabled) return;
+
+    // A step locks input while the camera travels; a wheel "gesture" is an unbroken stream of
+    // wheel events (trackpad momentum included) and may step at most once.
+    // The lock only holds back more steps the same way: reversing is always deliberate (momentum
+    // never changes sign), so it gets through at once and the spring turns the camera around.
+    let lockedUntil = 0;
+    let lastDirection: 1 | -1 = 1;
+    let lastWheelAt = 0;
+    let wheelAccum = 0;
+    let wheelDirection: 1 | -1 = 1;
+    let gestureConsumed = false;
+    const step = (direction: 1 | -1) => {
+      lockedUntil = performance.now() + STEP_LOCK_MS;
+      lastDirection = direction;
+      onStepRef.current?.(direction);
+    };
+    const isTravelling = () => Math.abs(motion.current.target - motion.current.x) > TRAVELLING_PX;
+    const isHeldBack = (direction: 1 | -1) =>
+      direction === lastDirection && (performance.now() < lockedUntil || isTravelling());
+    const allowsNativeScroll = (target: EventTarget | null) =>
+      target instanceof Element && target.closest('[data-allow-scroll]') !== null;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (allowsNativeScroll(e.target) || e.ctrlKey) return; // ctrl+wheel is pinch-zoom
+      e.preventDefault();
+      const now = performance.now();
+      const delta = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+      if (delta === 0) return;
+      const direction: 1 | -1 = delta > 0 ? 1 : -1;
+      // A pause or a change of direction starts a new gesture
+      if (now - lastWheelAt > WHEEL_GESTURE_GAP_MS || direction !== wheelDirection) {
+        wheelAccum = 0;
+        gestureConsumed = false;
+        wheelDirection = direction;
+      }
+      lastWheelAt = now;
+      // While the camera is still travelling this way, the rest of this gesture is spent: one
+      // gesture can never chain into a second step, however late slow frames deliver its events
+      if (direction === lastDirection && isTravelling()) gestureConsumed = true;
+      if (gestureConsumed || isHeldBack(direction)) return;
+      wheelAccum += delta;
+      if (Math.abs(wheelAccum) >= WHEEL_STEP_THRESHOLD) {
+        gestureConsumed = true;
+        step(direction);
+      }
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
-
-      const step = worldWidth * 0.02; // 2% per arrow tap
-      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
-        setTargetCamX((prev) => Math.min(worldWidth, prev + step));
-      } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
-        setTargetCamX((prev) => Math.max(0, prev - step));
-      } else if (e.key === ' ' || e.key === 'Spacebar') {
-        e.preventDefault();
-        triggerJump();
-      }
+      const target = e.target as HTMLElement | null;
+      if (target && (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || allowsNativeScroll(target))) return;
+      const forward = ['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'd', 'D'].includes(e.key) && !e.shiftKey;
+      const back = ['ArrowLeft', 'ArrowUp', 'PageUp', 'a', 'A'].includes(e.key) || (e.key === ' ' && e.shiftKey);
+      if (!forward && !back) return;
+      // Let Space/arrows still operate a focused button or link
+      if (e.key === ' ' && target && ['BUTTON', 'A'].includes(target.tagName)) return;
+      e.preventDefault();
+      const direction = forward ? 1 : -1;
+      if (!e.repeat || !isHeldBack(direction)) step(direction);
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [worldWidth, triggerJump]);
-
-  // Touch Swipe gestures for mobile
-  useEffect(() => {
-    let touchStartX = 0;
+    let startX = 0;
+    let startY = 0;
+    let tracking = false;
     const handleTouchStart = (e: TouchEvent) => {
-      touchStartX = e.touches[0].clientX;
+      tracking = !allowsNativeScroll(e.target);
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
     };
-
     const handleTouchMove = (e: TouchEvent) => {
-      const touchCurrentX = e.touches[0].clientX;
-      const deltaX = touchStartX - touchCurrentX;
-      if (Math.abs(deltaX) > 10) {
-        setTargetCamX((prev) => Math.max(0, Math.min(worldWidth, prev + deltaX * 1.5)));
-        touchStartX = touchCurrentX;
-      }
+      if (tracking && e.cancelable) e.preventDefault(); // no native momentum that could skip cards
+    };
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (!tracking) return;
+      const dx = startX - e.changedTouches[0].clientX;
+      const dy = startY - e.changedTouches[0].clientY;
+      const delta = Math.abs(dx) > Math.abs(dy) ? dx : dy; // swipe left or up = forward
+      // Every swipe is deliberate (native momentum is blocked above), so each one counts, even
+      // mid-slide: the step is taken from where the camera is heading, so none get skipped
+      if (Math.abs(delta) > SWIPE_THRESHOLD_PX) step(delta > 0 ? 1 : -1);
     };
 
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
     return () => {
+      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [worldWidth]);
-
-  // Smooth lerp frame loop
-  useEffect(() => {
-    let animId: number;
-
-    const frame = () => {
-      setCamX((current) => {
-        const diff = targetCamX - current;
-        if (Math.abs(diff) < 0.5) return targetCamX;
-
-        const next = current + diff * 0.12; // Smooth 60fps damping
-        const vel = next - prevCamXRef.current;
-        velocityRef.current = vel;
-        prevCamXRef.current = next;
-
-        // Pose deduction based on velocity
-        if (next >= worldWidth * 0.95) {
-          setPose('celebrate');
-        } else if (vel > 0.4) {
-          setPose('walk-bull');
-        } else if (vel < -0.4) {
-          setPose('walk-bear');
-        } else {
-          setPose('idle');
-        }
-
-        return next;
-      });
-
-      animId = requestAnimationFrame(frame);
-    };
-
-    animId = requestAnimationFrame(frame);
-    return () => cancelAnimationFrame(animId);
-  }, [targetCamX, worldWidth]);
+  }, [enabled]);
 
   return {
-    camX,
-    targetCamX,
-    pose,
-    isJumping,
-    activeQuip,
+    camX: cam.x,
+    cameraVelocity: cam.v,
     jumpToPercent,
-    triggerJump,
-    showQuip,
-    progressPercent: worldWidth > 0 ? (camX / worldWidth) * 100 : 0,
+    progressPercent: worldWidth > 0 ? (cam.x / worldWidth) * 100 : 0,
   };
 }

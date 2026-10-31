@@ -1,4 +1,4 @@
-import { PortfolioStop, HomelabTopology, UserProfile } from '../types/portfolio';
+import { PortfolioStop, HomelabTopology, UserProfile, SkillGroup, TrailScene } from '../types/portfolio';
 
 export const PROFILE: UserProfile = {
   name: "Rishal Raj Maskey",
@@ -11,15 +11,6 @@ export const PROFILE: UserProfile = {
   cvUrl: "assets/Rishal-Raj-Maskey-CV.pdf",
   uptime: "99.99%",
 };
-
-export const POKE_QUIPS: string[] = [
-  "Circuit breaker hit! +10% on that breakout.",
-  "Packet loss: 0.00% across all VLANs — ping 1.2ms.",
-  "Broker 58 is accumulating... time to scale the infrastructure!",
-  "Keep the networks resilient and the portfolio green.",
-  "Proxmox cluster quorum healthy — 3/3 nodes online.",
-  "Dual-WAN ER605 active: Worldlink + CG Net failover online.",
-];
 
 export const HOMELAB_SPEC: HomelabTopology = {
   edge: {
@@ -64,7 +55,7 @@ export const STOPS: PortfolioStop[] = [
   {
     id: "market-open",
     index: 0,
-    worldXPercent: 8,
+    worldXPercent: 22,
     marketIndex: 1100,
     date: "2021-06",
     orderType: "INITIAL_POSITION",
@@ -81,7 +72,7 @@ export const STOPS: PortfolioStop[] = [
   {
     id: "support-level",
     index: 1,
-    worldXPercent: 22,
+    worldXPercent: 30,
     marketIndex: 1450,
     date: "2023",
     orderType: "CREDENTIAL_ACQUIRED",
@@ -115,7 +106,7 @@ export const STOPS: PortfolioStop[] = [
   {
     id: "innovation-plateau",
     index: 3,
-    worldXPercent: 54,
+    worldXPercent: 46,
     marketIndex: 2350,
     date: "2024-12",
     orderType: "AI_VISION_DEPLOY",
@@ -144,7 +135,7 @@ export const STOPS: PortfolioStop[] = [
   {
     id: "alpha-breakout",
     index: 4,
-    worldXPercent: 70,
+    worldXPercent: 54,
     marketIndex: 2750,
     date: "2025 – Present",
     orderType: "ALGO_BREAKTHROUGH",
@@ -174,7 +165,7 @@ export const STOPS: PortfolioStop[] = [
   {
     id: "proxmox-citadel",
     index: 5,
-    worldXPercent: 84,
+    worldXPercent: 62,
     marketIndex: 2980,
     date: "2026",
     orderType: "CLUSTER_QUORUM",
@@ -191,7 +182,7 @@ export const STOPS: PortfolioStop[] = [
   {
     id: "ath-summit",
     index: 6,
-    worldXPercent: 96,
+    worldXPercent: 70,
     marketIndex: 3200,
     date: "2026-08-01",
     orderType: "ROLE_UPGRADE",
@@ -206,3 +197,93 @@ export const STOPS: PortfolioStop[] = [
     ],
   },
 ];
+
+
+// Non-career scenes that bookend the trail (Basecamp → Order Book → … → Summit → After Hours)
+export const SCENES: TrailScene[] = [
+  { id: 'basecamp', worldXPercent: 0, marketIndex: 1000, label: 'Pre-open' },
+  { id: 'order-book', worldXPercent: 12, marketIndex: 1040, label: 'Order book' },
+  { id: 'summit', worldXPercent: 82, marketIndex: 3320, label: 'All-time high' },
+  { id: 'after-hours', worldXPercent: 100, marketIndex: 3290, label: 'After hours' },
+];
+
+export const SKILL_BOOK: SkillGroup[] = [
+  {
+    ticker: 'NET',
+    title: 'Networking & Edge',
+    items: ['Enterprise Routing', 'Switching / VLANs', 'Dual-WAN Failover', 'SNMP v3', 'Fiber Diagnostics'],
+  },
+  {
+    ticker: 'VIRT',
+    title: 'Virtualization & Storage',
+    items: ['Proxmox VE (HA)', 'TrueNAS SCALE', 'ZFS', 'LXC', 'Windows Server', 'Linux'],
+  },
+  {
+    ticker: 'OBS',
+    title: 'Observability & NOC',
+    items: ['Grafana', 'InfluxDB', 'Telegraf', 'Beszel', 'Freshservice ITSM', 'SLA Audits'],
+  },
+  {
+    ticker: 'SEC',
+    title: 'Zero-Trust Access',
+    items: ['WireGuard', 'Tailscale', 'Cloudflare Tunnel', 'AdGuard DNS', 'Nginx Proxy Manager'],
+  },
+  {
+    ticker: 'DEV',
+    title: 'Code & Data',
+    items: ['Python', 'FastAPI', 'Next.js', 'TypeScript', 'OpenCV', 'SQLite'],
+  },
+  {
+    ticker: 'NEPSE',
+    title: 'Market Analysis',
+    items: ['Technical Analysis', 'Floorsheet Reading', 'Broker Accumulation', 'Volume Spikes', 'Risk Sizing'],
+  },
+];
+
+// What the bull (arriving forward) and the bear (arriving backward) say at each waypoint
+export const MASCOT_LINES: Record<string, { bull: string; bear: string }> = {
+  basecamp: {
+    bull: "Scroll and I'll charge. The bell's about to ring.",
+    bear: "Back at pre-open. I'll be here when it dips.",
+  },
+  'order-book': {
+    bull: 'Six long positions. All of them green.',
+    bear: "Nice order book. Let's see if it holds.",
+  },
+  'market-open': {
+    bull: 'First position: science and computer science.',
+    bear: 'Everyone starts small. Even me.',
+  },
+  'support-level': {
+    bull: '4× AWS Academy. Support level holding.',
+    bear: 'Back down to L1 support? Bold move.',
+  },
+  'noc-deck': {
+    bull: '24/7 NOC, 99.99% SLA. Sleep is for bears.',
+    bear: 'Retesting the night shifts, are we.',
+  },
+  'innovation-plateau': {
+    bull: 'BSc (Hons) and an AI traffic corridor. Hit the yellow button for the build!',
+    bear: 'Pulling back to graduation day.',
+  },
+  'alpha-breakout': {
+    bull: 'He built his own NEPSE radar. Yellow button, see how it works.',
+    bear: 'Broker 58 is selling. ...Kidding.',
+  },
+  'proxmox-citadel': {
+    bull: 'Three nodes, quorum healthy. Tap Inspect homelab to look inside.',
+    bear: "Even I can't take this cluster down. Go on, inspect it.",
+  },
+  'ath-summit': {
+    bull: 'Promoted to L2. New all-time high!',
+    bear: 'Is that the top? ...No. Still holding.',
+  },
+  summit: {
+    bull: "All-time high. Open a position: email's right there.",
+    bear: 'Leaving the summit already?',
+  },
+  'after-hours': {
+    bull: "Market's closed. Zzz…",
+    bear: "Market's closed. Zzz…",
+  },
+};

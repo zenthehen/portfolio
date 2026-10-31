@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { STOPS, HOMELAB_SPEC, POKE_QUIPS, PROFILE } from '../src/data/portfolioContent';
+import { STOPS, HOMELAB_SPEC, PROFILE } from '../src/data/portfolioContent';
 
 describe('Portfolio Content Registry', () => {
   it('contains profile metadata for Rishal Raj Maskey', () => {
@@ -32,8 +32,4 @@ describe('Portfolio Content Registry', () => {
     expect(HOMELAB_SPEC.edge.model).toBe('TP-Link ER605');
   });
 
-  it('contains poke quips for candle character', () => {
-    expect(POKE_QUIPS.length).toBeGreaterThanOrEqual(4);
-    expect(POKE_QUIPS.some(q => q.includes('Circuit breaker'))).toBe(true);
-  });
 });
